@@ -13,16 +13,16 @@ export async function userRoutes(app: FastifyInstance) {
     email: z.string().email(),
   })
 
+  /// INDEX
   app.get('/', async () => {
     const users = await knex('users').select()
 
     return { users }
   })
 
+  /// CREATE
   app.post('/', async (request, reply) => {
     const { name, email } = userBodySchema.parse(request.body)
-
-    console.log(name, email)
 
     await knex('users').insert({
       id: randomUUID(),
@@ -33,6 +33,7 @@ export async function userRoutes(app: FastifyInstance) {
     return reply.status(201).send()
   })
 
+  /// SHOW
   app.get('/:id', async (request) => {
     const { id } = userParamsSchema.parse(request.params)
 
@@ -45,6 +46,7 @@ export async function userRoutes(app: FastifyInstance) {
     return { user }
   })
 
+  /// UPDATE
   app.put('/:id', async (request, reply) => {
     const { id } = userParamsSchema.parse(request.params)
 
@@ -59,11 +61,18 @@ export async function userRoutes(app: FastifyInstance) {
         email,
       })
 
-    return reply.status(201).send()
+    return reply.status(204).send()
   })
 
+  /// DELETE
   app.delete('/:id', async (request, reply) => {
     const { id } = userParamsSchema.parse(request.params)
+
+    await knex('meals')
+      .where({
+        user_id: id,
+      })
+      .del()
 
     await knex('users')
       .where({
@@ -71,6 +80,6 @@ export async function userRoutes(app: FastifyInstance) {
       })
       .del()
 
-    return reply.status(201).send()
+    return reply.status(204).send()
   })
 }

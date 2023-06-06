@@ -1,8 +1,9 @@
+/* eslint-disable camelcase */
 import { randomUUID } from 'crypto'
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { knex } from '../database'
-import { checkSessionIdExists } from '../middlewares/session-id'
+import { checkUserIdExists } from '../middlewares/check-user-id-exists'
 
 export async function mealRoutes(app: FastifyInstance) {
   const mealParamsSchema = z.object({
@@ -12,74 +13,112 @@ export async function mealRoutes(app: FastifyInstance) {
   const mealBodySchema = z.object({
     name: z.string(),
     description: z.string(),
-    onDiet: z.boolean().default(false),
-    userId: z.string().uuid(),
+    on_diet: z.boolean().default(false),
   })
 
-  app.get('/', async () => {
-    const meals = await knex('meals').select()
+  /// INDEX
+  app.get(
+    '/',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request, reply) => {
+      const userId = request.cookies.userId
 
-    return { meals }
-  })
+      const meals = await knex('meals').select().where({ user_id: userId })
 
-  app.post('/', async (request, reply) => {
-    const { name, description, onDiet, userId } = mealBodySchema.parse(
-      request.body,
-    )
+      return { meals }
+    },
+  )
 
-    await knex('meals').insert({
-      id: randomUUID(),
-      name,
-      description,
-      onDiet,
-      user_id: userId,
-    })
+  /// CREATE
+  app.post(
+    '/',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request, reply) => {
+      const userId = request.cookies.userId
+      const { name, description, on_diet } = mealBodySchema.parse(request.body)
 
-    return reply.status(201).send()
-  })
-
-  app.get('/:id', async (request) => {
-    const { id } = mealParamsSchema.parse(request.params)
-
-    const meal = await knex('meals')
-      .where({
-        id,
-      })
-      .first()
-
-    return { meal }
-  })
-
-  app.put('/:id', async (request, reply) => {
-    const { id } = mealParamsSchema.parse(request.params)
-
-    const { name, description, onDiet, userId } = mealBodySchema.parse(
-      request.body,
-    )
-
-    await knex('meals')
-      .where({
-        id,
-      })
-      .update({
+      await knex('meals').insert({
+        id: randomUUID(),
         name,
         description,
-        onDiet,
+        on_diet,
         user_id: userId,
       })
 
-    return reply.status(201).send()
-  })
+      return reply.status(201).send()
+    },
+  )
 
-  app.delete('/:id', async (request, reply) => {
-    const { id } = mealParamsSchema.parse(request.params)
+  /// SHOW
+  app.get(
+    '/:id',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request) => {
+      const { id } = mealParamsSchema.parse(request.params)
+      const userId = request.cookies.userId
 
-    await knex('meals')
-      .where({
-        id,
-      })
-      .del()
+      const meal = await knex('meals')
+        .where({
+          id,
+          user_id: userId,
+        })
+        .first()
 
-    return reply.status(201).send()
-  })
+      return { meal }
+    },
+  )
+
+  /// UPDATE
+  app.put(
+    '/:id',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request, reply) => {
+      const userId = request.cookies.userId
+      const { id } = mealParamsSchema.parse(request.params)
+
+      const { name, description, on_diet } = mealBodySchema.parse(request.body)
+
+      await knex('meals')
+        .where({
+          id,
+        })
+        .update({
+          name,
+          description,
+          on_diet,
+          user_id: userId,
+        })
+
+      return reply.status(204).send()
+    },
+  )
+
+  /// DELETE
+  app.delete(
+    '/:id',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request, reply) => {
+      const userId = request.cookies.userId
+      const { id } = mealParamsSchema.parse(request.params)
+
+      await knex('meals')
+        .where({
+          id,
+          user_id: userId,
+        })
+        .del()
+
+      return reply.status(204).send()
+    },
+  )
 }
