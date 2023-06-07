@@ -8,11 +8,6 @@ export async function userRoutes(app: FastifyInstance) {
     id: z.string().uuid(),
   })
 
-  const userBodySchema = z.object({
-    name: z.string(),
-    email: z.string().email(),
-  })
-
   /// INDEX
   app.get('/', async () => {
     const users = await knex('users').select()
@@ -22,7 +17,12 @@ export async function userRoutes(app: FastifyInstance) {
 
   /// CREATE
   app.post('/', async (request, reply) => {
-    const { name, email } = userBodySchema.parse(request.body)
+    const createUserBodySchema = z.object({
+      name: z.string(),
+      email: z.string().email(),
+    })
+
+    const { name, email } = createUserBodySchema.parse(request.body)
 
     await knex('users').insert({
       id: randomUUID(),
@@ -50,7 +50,12 @@ export async function userRoutes(app: FastifyInstance) {
   app.put('/:id', async (request, reply) => {
     const { id } = userParamsSchema.parse(request.params)
 
-    const { name, email } = userBodySchema.parse(request.body)
+    const updateUserBodySchema = z.object({
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+    })
+
+    const { name, email } = updateUserBodySchema.parse(request.body)
 
     await knex('users')
       .where({
