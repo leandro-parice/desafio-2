@@ -54,4 +54,42 @@ export async function reportRoutes(app: FastifyInstance) {
       return { report }
     },
   )
+
+  /// BEST SEQUENCE
+  app.get(
+    '/meals/best-sequence',
+    {
+      preHandler: [checkUserIdExists],
+    },
+    async (request, reply) => {
+      const userId = request.cookies.userId
+
+      const meals = await knex('meals')
+        .select()
+        .where({ user_id: userId, on_diet: true })
+        .orderBy([
+          { column: 'date', order: 'asc' },
+          { column: 'time', order: 'asc' },
+        ])
+
+      let currentSequence: number = 0
+      let bestSequence: number = 0
+      let lastDay: string | null = null
+
+      meals.forEach((meal) => {
+        if (lastDay !== meal.date) {
+          if (currentSequence > bestSequence) {
+            bestSequence = currentSequence
+          }
+
+          lastDay = meal.date
+          currentSequence = 1
+        } else {
+          currentSequence += 1
+        }
+      })
+
+      return { bestSequence }
+    },
+  )
 }

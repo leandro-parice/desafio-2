@@ -7,17 +7,19 @@ declare module 'knex/types/tables' {
       id: string
       name: string
       email: string
-      created_at: string
-      updated_at: string
+      created_at: Date
+      updated_at: Date
     }
     meals: {
       id: string
-      user_id: string
       name: string
       description: string
       on_diet: boolean
-      created_at: string
-      updated_at: string
+      created_at: Date
+      updated_at: Date
+      user_id: string
+      date: string
+      time: string
     }
   }
 }
